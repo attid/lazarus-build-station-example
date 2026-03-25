@@ -133,3 +133,19 @@ lazbuild --pcp=/tmp/lazarus-build-station-example -B /workspace/app/lazarus_buil
 - The primary workflow assumes Docker is available locally.
 - The example demonstrates Linux container builds; cross-target packaging is out
   of scope for this repository.
+
+## Releases
+
+The repository includes a GitHub Actions workflow at
+`.github/workflows/release.yml`.
+
+On a pushed tag matching `v*`, it:
+
+- builds `linux/x86_64`
+- builds `win64/x86_64`
+- builds `linux/i386`
+- builds `win32/i386`
+- archives each binary as a `.tar.gz`
+- uploads the archives to the corresponding GitHub Release
+
+That makes `v1.0.0` a good first validation tag for the release pipeline.

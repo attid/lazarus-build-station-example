@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.target_id }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_id: linux-x86_64
+            target_os: linux
+            target_cpu: x86_64
+            image: ghcr.io/attid/lazarus-build-station:latest-amd64
+            artifact_name: lazarus-build-station-example-linux-x86_64
+            output_file: dist/linux-x86_64/lazarus_build_station_example
+          - target_id: win64-x86_64
+            target_os: win64
+            target_cpu: x86_64
+            image: ghcr.io/attid/lazarus-build-station:latest-amd64
+            artifact_name: lazarus-build-station-example-win64-x86_64
+            output_file: dist/win64-x86_64/lazarus_build_station_example.exe
+          - target_id: linux-i386
+            target_os: linux
+            target_cpu: i386
+            image: ghcr.io/attid/lazarus-build-station:latest-i386
+            artifact_name: lazarus-build-station-example-linux-i386
+            output_file: dist/linux-i386/lazarus_build_station_example
+          - target_id: win32-i386
+            target_os: win32
+            target_cpu: i386
+            image: ghcr.io/attid/lazarus-build-station:latest-i386
+            artifact_name: lazarus-build-station-example-win32-i386
+            output_file: dist/win32-i386/lazarus_build_station_example.exe
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build target
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            --user "$(id -u):$(id -g)" \
+            -e TARGET_OS="${{ matrix.target_os }}" \
+            -e TARGET_CPU="${{ matrix.target_cpu }}" \
+            "${{ matrix.image }}" \
+            bash /workspace/scripts/build-in-container.sh
+
+      - name: Package artifact
+        run: |
+          mkdir -p release-assets
+          cp "${{ matrix.output_file }}" "release-assets/"
+          tar -C release-assets -czf "${{ matrix.artifact_name }}.tar.gz" "$(basename "${{ matrix.output_file }}")"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.tar.gz
+
+      - name: Upload release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact_name }}.tar.gz
+
