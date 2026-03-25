@@ -1,0 +1,11 @@
+object DemoMainForm: TDemoMainForm
+  Left = 320
+  Height = 420
+  Top = 180
+  Width = 760
+  Caption = 'Lazarus Build Station Example'
+  ClientHeight = 420
+  ClientWidth = 760
+  OnCreate = FormCreate
+  LCLVersion = '3.0.0.0'
+end

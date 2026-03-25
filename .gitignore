@@ -1,0 +1,12 @@
+/app/lib/
+/app/*.o
+/app/*.ppu
+/app/*.res
+/app/lazarus_build_station_example
+/app/*.exe
+/dist/
+/components/**/lib/
+/packagefiles.xml
+/tests/*.o
+/tests/*.ppu
+/tests/demo_logic_test
