@@ -1,5 +1,7 @@
 # Lazarus Build Station Example
 
+[![Release](https://github.com/attid/lazarus-build-station-example/actions/workflows/release.yml/badge.svg)](https://github.com/attid/lazarus-build-station-example/actions/workflows/release.yml)
+
 This repository is a small, publishable example that demonstrates how to build a
 Lazarus GUI application with the published
 [`ghcr.io/attid/lazarus-build-station`](https://ghcr.io/attid/lazarus-build-station)
