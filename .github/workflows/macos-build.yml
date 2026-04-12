@@ -51,6 +51,21 @@ jobs:
           TARGET_CPU: ${{ matrix.target_cpu }}
         run: bash ./scripts/build-on-macos.sh
 
+      - name: Collect linker diagnostics
+        if: failure()
+        run: |
+          mkdir -p macos-debug
+          find app -maxdepth 1 \( -name 'ppaslink.sh' -o -name 'link*.res' -o -name '*.compiled' -o -name '*.or' \) -exec cp {} macos-debug/ \; || true
+          find app/lib -maxdepth 3 -type f | head -n 200 > macos-debug/app-lib-files.txt || true
+          env | sort > macos-debug/env.txt
+
+      - name: Upload linker diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}-debug
+          path: macos-debug/
+
       - name: Package artifact
         run: |
           mkdir -p release-assets

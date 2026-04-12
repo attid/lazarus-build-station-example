@@ -69,7 +69,7 @@ build_pkg() {
 build_pkg "${BGRABITMAP_PKG}"
 build_pkg "${BGRACONTROLS_PKG}"
 
-"${LAZBUILD_CMD[@]}" --pcp="${PCP_DIR}" "${LAZBUILD_ARGS[@]}" -B "${PROJECT_FILE}"
+"${LAZBUILD_CMD[@]}" --verbose --pcp="${PCP_DIR}" "${LAZBUILD_ARGS[@]}" -B "${PROJECT_FILE}"
 
 if [[ ! -f "${APP_BINARY}" ]]; then
   echo "Expected build output not found: ${APP_BINARY}" >&2
