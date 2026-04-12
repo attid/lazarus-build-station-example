@@ -69,11 +69,31 @@ build_pkg() {
 build_pkg "${BGRABITMAP_PKG}"
 build_pkg "${BGRACONTROLS_PKG}"
 
+set +e
 "${LAZBUILD_CMD[@]}" --verbose --pcp="${PCP_DIR}" "${LAZBUILD_ARGS[@]}" -B "${PROJECT_FILE}"
+build_status=$?
+set -e
 
-if [[ ! -f "${APP_BINARY}" ]]; then
-  echo "Expected build output not found: ${APP_BINARY}" >&2
-  exit 1
+if [[ ${build_status} -ne 0 && "${TARGET_CPU}" == "arm64" && -f "${ROOT_DIR}/app/ppaslink.sh" ]]; then
+  echo "Initial lazbuild failed for ${TARGET_NAME}; attempting fallback relink without legacy ld flags"
+  cp "${ROOT_DIR}/app/ppaslink.sh" "${ROOT_DIR}/app/ppaslink-fallback.sh"
+  python3 - <<'PY'
+from pathlib import Path
+path = Path("app/ppaslink-fallback.sh")
+text = path.read_text()
+text = text.replace(' -order_file /Users/runner/work/lazarus-build-station-example/lazarus-build-station-example/app/symbol_order.fpc', '')
+text = text.replace(' -multiply_defined suppress', '')
+text = text.replace('-macosx_version_min', '-macos_version_min')
+path.write_text(text)
+PY
+  chmod +x "${ROOT_DIR}/app/ppaslink-fallback.sh"
+  (cd "${ROOT_DIR}/app" && sh -x ./ppaslink-fallback.sh)
+  build_status=0
+fi
+
+if [[ ${build_status} -ne 0 || ! -f "${APP_BINARY}" ]]; then
+  echo "Expected build output not found or build failed: ${APP_BINARY}" >&2
+  exit ${build_status:-1}
 fi
 
 cp "${APP_BINARY}" "${ARTIFACTS_DIR}/"
