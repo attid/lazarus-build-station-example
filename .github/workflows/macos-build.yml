@@ -13,7 +13,7 @@ jobs:
       matrix:
         include:
           - target_id: darwin-x86_64
-            runs_on: macos-13
+            runs_on: macos-latest
             target_os: darwin
             target_cpu: x86_64
             artifact_name: lazarus-build-station-example-darwin-x86_64

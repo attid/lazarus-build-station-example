@@ -16,13 +16,11 @@ fi
 curl -fL "${LAZARUS_PKG_URL}" -o "${PKG_PATH}"
 sudo installer -pkg "${PKG_PATH}" -target /
 
-mapfile -t lazbuild_candidates < <(find /Applications /usr/local -name lazbuild -type f 2>/dev/null | sort)
-if [[ ${#lazbuild_candidates[@]} -eq 0 ]]; then
+LAZBUILD_BIN="$(find /Applications /usr/local -name lazbuild -type f 2>/dev/null | sort | head -n 1)"
+if [[ -z "${LAZBUILD_BIN}" ]]; then
   echo "Unable to locate lazbuild after Lazarus installation" >&2
   exit 1
 fi
-
-LAZBUILD_BIN="${lazbuild_candidates[0]}"
 echo "Using lazbuild at ${LAZBUILD_BIN}"
 file "${LAZBUILD_BIN}"
 
