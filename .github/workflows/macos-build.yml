@@ -1,0 +1,61 @@
+name: macOS Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: Build ${{ matrix.target_id }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_id: darwin-x86_64
+            target_os: darwin
+            target_cpu: x86_64
+            artifact_name: lazarus-build-station-example-darwin-x86_64
+            output_file: dist/darwin-x86_64/lazarus_build_station_example
+          - target_id: darwin-arm64
+            target_os: darwin
+            target_cpu: arm64
+            artifact_name: lazarus-build-station-example-darwin-arm64
+            output_file: dist/darwin-arm64/lazarus_build_station_example
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Show macOS version
+        run: sw_vers
+
+      - name: Install Lazarus and FPC
+        run: |
+          brew update
+          brew install fpc lazarus
+
+      - name: Show toolchain
+        run: |
+          which fpc
+          fpc -i
+          which lazbuild
+          lazbuild --version
+
+      - name: Build target
+        env:
+          TARGET_OS: ${{ matrix.target_os }}
+          TARGET_CPU: ${{ matrix.target_cpu }}
+        run: bash ./scripts/build-on-macos.sh
+
+      - name: Package artifact
+        run: |
+          mkdir -p release-assets
+          cp "${{ matrix.output_file }}" "release-assets/"
+          tar -C release-assets -czf "${{ matrix.artifact_name }}.tar.gz" "$(basename "${{ matrix.output_file }}")"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.tar.gz
