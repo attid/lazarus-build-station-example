@@ -7,17 +7,19 @@ on:
 jobs:
   build-macos:
     name: Build ${{ matrix.target_id }}
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - target_id: darwin-x86_64
+            runs_on: macos-13
             target_os: darwin
             target_cpu: x86_64
             artifact_name: lazarus-build-station-example-darwin-x86_64
             output_file: dist/darwin-x86_64/lazarus_build_station_example
           - target_id: darwin-arm64
+            runs_on: macos-latest
             target_os: darwin
             target_cpu: arm64
             artifact_name: lazarus-build-station-example-darwin-arm64
@@ -28,19 +30,20 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Show macOS version
-        run: sw_vers
+        run: |
+          sw_vers
+          uname -m
 
       - name: Install Lazarus and FPC
-        run: |
-          brew update
-          brew install fpc lazarus
+        run: bash ./scripts/install-lazarus-macos.sh
 
       - name: Show toolchain
         run: |
           which fpc
           fpc -i
-          which lazbuild
-          lazbuild --version
+          echo "LAZBUILD_BIN=${LAZBUILD_BIN}"
+          file "${LAZBUILD_BIN}"
+          "${LAZBUILD_BIN}" --version
 
       - name: Build target
         env:
