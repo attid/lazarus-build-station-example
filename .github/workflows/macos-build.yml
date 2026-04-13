@@ -45,6 +45,19 @@ jobs:
           file "${LAZBUILD_BIN}"
           "${LAZBUILD_BIN}" --version
 
+      - name: FPC smoke test
+        if: matrix.target_cpu == 'arm64'
+        run: |
+          cat > hello.pas <<'EOF'
+          program hello;
+          begin
+            writeln('hello');
+          end.
+          EOF
+          fpc hello.pas
+          file ./hello
+          ./hello
+
       - name: Build target
         env:
           TARGET_OS: ${{ matrix.target_os }}
