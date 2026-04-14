@@ -1,0 +1,163 @@
+name: Build Lazarus macOS Toolchain
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke-lazarus-arm64:
+    name: Smoke Lazarus GUI on macOS arm64
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Show macOS version
+        run: |
+          sw_vers
+          uname -m
+
+      - name: Install FPC and Lazarus
+        run: bash ./scripts/install-lazarus-macos.sh
+
+      - name: Show toolchain
+        run: |
+          which fpc
+          fpc -i
+          echo "LAZBUILD_BIN=${LAZBUILD_BIN}"
+          file "${LAZBUILD_BIN}"
+          "${LAZBUILD_BIN}" --version
+
+      - name: FPC console smoke test
+        run: |
+          cat > hello.pas <<'EOF'
+          program hello;
+          begin
+            writeln('hello');
+          end.
+          EOF
+          fpc hello.pas
+          file ./hello
+          ./hello
+
+      - name: Create Lazarus GUI smoke project
+        run: |
+          mkdir -p smokegui
+
+          cat > smokegui/smokegui.lpr <<'EOF'
+          program smokegui;
+
+          {$mode objfpc}{$H+}
+
+          uses
+            {$IFDEF UNIX}{$IFDEF UseCThreads}
+            cthreads,
+            {$ENDIF}{$ENDIF}
+            Interfaces,
+            Forms,
+            Unit1;
+
+          begin
+            RequireDerivedFormResource := True;
+            Application.Initialize;
+            Application.CreateForm(TForm1, Form1);
+            Application.Run;
+          end.
+          EOF
+
+          cat > smokegui/unit1.pas <<'EOF'
+          unit Unit1;
+
+          {$mode objfpc}{$H+}
+
+          interface
+
+          uses
+            Classes, SysUtils, Forms, Controls, Graphics, Dialogs;
+
+          type
+            TForm1 = class(TForm)
+            end;
+
+          var
+            Form1: TForm1;
+
+          implementation
+
+          {$R *.lfm}
+
+          end.
+          EOF
+
+          cat > smokegui/unit1.lfm <<'EOF'
+          object Form1: TForm1
+            Left = 100
+            Height = 240
+            Top = 100
+            Width = 320
+            Caption = 'Smoke GUI'
+          end
+          EOF
+
+          cat > smokegui/smokegui.lpi <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <CONFIG>
+            <ProjectOptions>
+              <Version Value="12"/>
+              <General>
+                <SessionStorage Value="InProjectDir"/>
+                <Title Value="smokegui"/>
+                <UseAppBundle Value="False"/>
+              </General>
+              <BuildModes Count="1">
+                <Item1 Name="Default" Default="True"/>
+              </BuildModes>
+              <PublishOptions>
+                <Version Value="2"/>
+                <UseFileFilters Value="True"/>
+              </PublishOptions>
+              <RunParams>
+                <FormatVersion Value="2"/>
+              </RunParams>
+              <Units Count="1">
+                <Unit0>
+                  <Filename Value="smokegui.lpr"/>
+                  <IsPartOfProject Value="True"/>
+                </Unit0>
+              </Units>
+            </ProjectOptions>
+            <CompilerOptions>
+              <Version Value="11"/>
+              <Target>
+                <Filename Value="smokegui"/>
+              </Target>
+              <SearchPaths>
+                <IncludeFiles Value=""/>
+                <OtherUnitFiles Value=""/>
+              </SearchPaths>
+            </CompilerOptions>
+          </CONFIG>
+          EOF
+
+      - name: Build Lazarus GUI smoke project
+        env:
+          PCP_DIR: /tmp/lazarus-smoke-pcp
+        run: |
+          mkdir -p "$PCP_DIR"
+          "${LAZBUILD_BIN}" --verbose --pcp="$PCP_DIR" --os=darwin --cpu=aarch64 --ws=cocoa -B smokegui/smokegui.lpi
+          file smokegui/smokegui
+
+      - name: Collect smoke diagnostics
+        if: always()
+        run: |
+          mkdir -p smoke-debug
+          find smokegui -maxdepth 2 -type f | sort > smoke-debug/files.txt || true
+          find smokegui -maxdepth 2 \( -name 'ppaslink.sh' -o -name 'link*.res' -o -name '*.or' -o -name '*.o' \) -exec cp {} smoke-debug/ \; || true
+          env | sort > smoke-debug/env.txt
+
+      - name: Upload smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lazarus-macos-smoke-debug
+          path: smoke-debug/
